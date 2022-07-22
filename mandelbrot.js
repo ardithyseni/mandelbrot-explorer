@@ -13,7 +13,7 @@ var escapeRadius = 10.0;
 var interiorColor = [0, 0, 0, 255];
 var reInitCanvas = true; // Whether to reload canvas size, etc
 var dragToZoom = true;
-var colors = [[0, 0, 0, 0]];
+var colors = [[0,0,0,0]];
 var renderId = 0; // To zoom before current render is finished
 
 // initializing canvas
@@ -27,153 +27,162 @@ ccanvas.width = window.innerWidth;
 ccanvas.height = window.innerHeight;
 
 var ctx = canvas.getContext('2d');
-var img = ctx.createImageDAta(canvas.width, 1);
+var img = ctx.createImageData(canvas.width, 1);
 
 /*
  * A shorthand function: Fetch given element
  */
 
-function $(id) 
+function $(id)
 {
-    return document.getElementById(id);
+  return document.getElementById(id);
 }
 
-function focusOnSubmit() 
+function focusOnSubmit()
 {
-    var e = $('submitButton');
-    if (e) e.focus();
+  var e = $('submitButton');
+  if ( e ) e.focus();
 }
 
-function getColorPicker() 
+function getColorPicker()
 {
-    var p = $("colorScheme").value;
-    if (p == "pickColorHSV1") return pickColorHSV1;
-    if (p == "pickColorHSV2") return pickColorHSV2;
-    if (p == "pickColorHSV3") return pickColorHSV3;
-    if (p == "pickColorGrayscale2") return pickColorGrayscale2;
-    return pickColorGrayscale;
+  var p = $("colorScheme").value;
+  if ( p == "pickColorHSV1" ) return pickColorHSV1;
+  if ( p == "pickColorHSV2" ) return pickColorHSV2;
+  if ( p == "pickColorHSV3" ) return pickColorHSV3;
+  if ( p == "pickColorGrayscale2" ) return pickColorGrayscale2;
+  return pickColorGrayscale;
 }
 
-function getSamples() 
+
+function getSamples()
 {
-    var i = parseInt($('superSamples').value, 10);
-    return i <= 0 ? 1 : i;
+  var i = parseInt($('superSamples').value, 10);
+  return i<=0? 1 : i;
 }
 
 /*
+ * Main renderer equation.
  *
+ * Returns number of iterations and values of Z_{n}^2 = Tr + Ti at the time
+ * we either converged (n == iterations) or diverged.  We use these to
+ * determined the color at the current pixel.
  *
- * 
+ * The Mandelbrot set is rendered taking
  *
- * 
+ *     Z_{n+1} = Z_{n}^2 + C
+ *
+ * with C = x + iy, based on the "look at" coordinates.
  */
 
-function iterateEquation(Cr, Ci, escapeRadius, iterations) 
+function iterateEquation(Cr, Ci, escapeRadius, iterations)
 {
-    var Zr = 0;
-    var Zi = 0;
-    var Tr = 0;
-    var Ti = 0;
-    var n = 0;
+  var Zr = 0;
+  var Zi = 0;
+  var Tr = 0;
+  var Ti = 0;
+  var n  = 0;
 
-    for (; n < iterations && (Tr + Ti) <= escapeRadius; ++n) {
-        Zi = 2 * Zr * Zi + Ci;
-        Zr = Tr - Ti + Cr;
-        Tr = Zr * Zr;
-        Ti = Zi * Zi;
-    }
+  for ( ; n<iterations && (Tr+Ti)<=escapeRadius; ++n ) {
+    Zi = 2 * Zr * Zi + Ci;
+    Zr = Tr - Ti + Cr;
+    Tr = Zr * Zr;
+    Ti = Zi * Zi;
+  }
 
-    /*
-     * Four more iterations to decrease error term;
-     * see http://linas.org/art-gallery/escape/escape.html
-     */
-    for (var e = 0; e < 4; ++e) {
-        Zi = 2 * Zr * Zi + Ci;
-        Zr = Tr - Ti + Cr;
-        Tr = Zr * Zr;
-        Ti = Zi * Zi;
-    }
+  /*
+   * Four more iterations to decrease error term;
+   * see http://linas.org/art-gallery/escape/escape.html
+   */
+  for ( var e=0; e<4; ++e ) {
+    Zi = 2 * Zr * Zi + Ci;
+    Zr = Tr - Ti + Cr;
+    Tr = Zr * Zr;
+    Ti = Zi * Zi;
+  }
 
-    return [n, Tr, Ti];
+  return [n, Tr, Ti];
 }
 
-function updateHashTag(samples, iterations) 
+function updateHashTag(samples, iterations)
 {
-    var radius = $('escapeRadius').value;
-    var scheme = $('colorScheme').value;
+  var radius = $('escapeRadius').value;
+  var scheme = $('colorScheme').value;
 
-    location.hash = 'zoom=' + zoom + '&' +
-        'lookat=' + lookAt + '&' +
-        'iterations=' + iterations + '&' +
-        'superSamples=' + samples + '&' +
-        'escapeRadius=' + radius + '&' +
-        'colorScheme=' + scheme;
+  location.hash = 'zoom=' + zoom + '&' +
+                  'lookAt=' + lookAt + '&' +
+                  'iterations=' + iterations + '&' +
+                  'superSamples=' + samples + '&' +
+                  'escapeRadius=' + radius + '&' +
+                  'colorScheme=' + scheme;
 }
 
-function updateInfoBox() {
-    // update infobox table
-    $('infoBox').innerHTML =
-        'x<sub>0</sub>=' + xRange[0] + ' y<sub>0</sub>=' + yRange[0] + ' ' +
-        'x<sub>1</sub>=' + xRange[1] + ' y<sub>1</sub>=' + yRange[1] + ' ' +
-        'w&#10799;h=' + canvas.width + 'x' + canvas.height + ' '
-        + (canvas.width * canvas.height / 1000000.0).toFixed(1) + 'MegaPixels';
+function updateInfoBox()
+{
+  // Update infobox
+  $('infoBox').innerHTML =
+    'x<sub>0</sub>=' + xRange[0] + ' y<sub>0</sub>=' + yRange[0] + ' ' +
+    'x<sub>1</sub>=' + xRange[1] + ' y<sub>1</sub>=' + yRange[1] + ' ' +
+    'w&#10799;h=' + canvas.width + 'x' + canvas.height + ' '
+        + (canvas.width*canvas.height/1000000.0).toFixed(1) + 'MP';
 }
 
 /*
  * Parse URL hash tag, returns whether we should redraw.
  */
-function readHashTag() 
+function readHashTag()
 {
-    var redraw = false;
-    var tags = location.hash.split('&');
+  var redraw = false;
+  var tags = location.hash.split('&');
 
-    for (var i = 0; i < tags.length; i++) {
-        var tag = tags[i].split('=');
-        var key = tag[0];
-        var val = tag[1];
+  for ( var i=0; i<tags.length; ++i ) {
+    var tag = tags[i].split('=');
+    var key = tag[0];
+    var val = tag[1];
 
-        switch (key) {
-            case '#zoom': {
-                var z = val.split(',');
-                zoom = [parseFloat(z[0]), parseFloat(z[1])];
-                redraw = true;
-            } break;
+    switch ( key ) {
+      case '#zoom': {
+        var z = val.split(',');
+        zoom = [parseFloat(z[0]), parseFloat(z[1])];
+        redraw = true;
+      } break;
 
-            case 'lookAt': {
-                var l = val.split(',');
-                lookAt = [parseFloat(l[0]), parsefloat(l[1])];
-                redraw = true;
-            } break;
+      case 'lookAt': {
+        var l = val.split(',');
+        lookAt = [parseFloat(l[0]), parseFloat(l[1])];
+        redraw = true;
+      } break;
 
-            case 'iterations': {
-                $('steps').value = String(parseInt(val, 10));
-                $('autoIterations').chekced = false;
-                redraw = true;
-            } break;
+      case 'iterations': {
+        $('steps').value = String(parseInt(val, 10));
+        $('autoIterations').checked = false;
+        redraw = true;
+      } break;
 
-            case 'escapeRadius': {
-                escapeRadius = parseFloat(val);
-                $('escapeRadius').value = String(escapeRadius);
-                redraw = true;
-            } break;
+      case 'escapeRadius': {
+        escapeRadius = parseFloat(val);
+        $('escapeRadius').value = String(escapeRadius);
+        redraw = true;
+      } break;
 
-            case 'superSamples': {
-                $('superSamples').value = String(parseInt(val, 19));
-                redraw = true;
-            } break;
+      case 'superSamples': {
+        $('superSamples').value = String(parseInt(val, 10));
+        redraw = true;
+      } break;
 
-            case 'colorScheme': {
-                $('colorScheme').value = String(val);
-                redraw = true;
-            } break;
-        }
+      case 'colorScheme': {
+        $('colorScheme').value = String(val);
+        redraw = true;
+      } break;
     }
+  }
 
-    if (redraw)
-        reInitCanvas = true;
+  if ( redraw )
+    reInitCanvas = true;
 
-    return redraw;
+  return redraw;
 }
+
 
 /*
  * Return number with metric units
@@ -185,6 +194,13 @@ function metric_units(number)
     return "" + (number / Math.pow(10, 3 * (mag - 1))).toFixed(2) + unit[mag];
 }
 
+function metric_units(number)
+{
+  var unit = ["", "k", "M", "G", "T", "P", "E"];
+  var mag = Math.ceil((1+Math.log(number)/Math.log(10))/3);
+  return "" + (number/Math.pow(10, 3*(mag-1))).toFixed(2) + unit[mag];
+}
+
 /*
  * Convert hue-saturation-value/luminosity to RGB.
  *
@@ -193,32 +209,31 @@ function metric_units(number)
  *   S = [0.0, 1.0] (float)
  *   V = [0.0, 1.0] (float)
  */
-function hsv_to_rgb(h, s, v) 
+function hsv_to_rgb(h, s, v)
 {
-    if (v > 1.0) v = 1.0;
-    var hp = h / 60.0;
-    var c = v * s;
-    var x = c * (1 - Math.abs((hp % 2) - 1));
-    var rgb = [0, 0, 0];
+  if ( v > 1.0 ) v = 1.0;
+  var hp = h/60.0;
+  var c = v * s;
+  var x = c*(1 - Math.abs((hp % 2) - 1));
+  var rgb = [0,0,0];
 
-    if (0 <= hp && hp < 1) rgb = [c, x, 0];
-    if (1 <= hp && hp < 2) rgb = [x, c, 0];
-    if (2 <= hp && hp < 3) rgb = [0, c, x];
-    if (3 <= hp && hp < 4) rgb = [0, x, c];
-    if (4 <= hp && hp < 5) rgb = [x, 0, c];
-    if (5 <= hp && hp < 6) rgb = [c, 0, x];
+  if ( 0<=hp && hp<1 ) rgb = [c, x, 0];
+  if ( 1<=hp && hp<2 ) rgb = [x, c, 0];
+  if ( 2<=hp && hp<3 ) rgb = [0, c, x];
+  if ( 3<=hp && hp<4 ) rgb = [0, x, c];
+  if ( 4<=hp && hp<5 ) rgb = [x, 0, c];
+  if ( 5<=hp && hp<6 ) rgb = [c, 0, x];
 
-    var m = v - c;
-    rgb[0] += m;
-    rgb[1] += m;
-    rgb[2] += m;
+  var m = v - c;
+  rgb[0] += m;
+  rgb[1] += m;
+  rgb[2] += m;
 
-    rgb[0] *= 255;
-    rgb[1] *= 255;
-    rgb[2] *= 255;
-    return rgb;
+  rgb[0] *= 255;
+  rgb[1] *= 255;
+  rgb[2] *= 255;
+  return rgb;
 }
-
 
 /*
  * Adjust aspect ratio based on plot ranges and canvas dimensions.
@@ -433,3 +448,243 @@ function draw(pickColor, superSamples)
 
   render();
 }
+
+
+// constants to use with smoothColor
+var logBase = 1.0 / Math.log(2.0);
+var logHalfBase = Math.log(0.5)*logBase;
+
+function smoothColor(steps, n, Tr, Ti)
+{
+  return 5 + n - logHalfBase - Math.log(Math.log(Tr+Ti))*logBase;
+}
+
+function pickColorHSV1(steps, n, Tr, Ti)
+{
+  if ( n == steps ) // converged?
+    return interiorColor;
+
+  var v = smoothColor(steps, n, Tr, Ti);
+  var c = hsv_to_rgb(360.0*v/steps, 1.0, 1.0);
+  c.push(255); // alpha
+  return c;
+}
+
+function pickColorHSV2(steps, n, Tr, Ti)
+{
+  if ( n == steps ) // converged?
+    return interiorColor;
+
+  var v = smoothColor(steps, n, Tr, Ti);
+  var c = hsv_to_rgb(360.0*v/steps, 1.0, 10.0*v/steps);
+  c.push(255); // alpha
+  return c;
+}
+
+function pickColorHSV3(steps, n, Tr, Ti)
+{
+  if ( n == steps ) // converged?
+    return interiorColor;
+
+  var v = smoothColor(steps, n, Tr, Ti);
+  var c = hsv_to_rgb(360.0*v/steps, 1.0, 10.0*v/steps);
+
+  // swap red and blue
+  var t = c[0];
+  c[0] = c[2];
+  c[2] = t;
+
+  c.push(255); // alpha
+  return c;
+}
+
+function pickColorGrayscale(steps, n, Tr, Ti)
+{
+  if ( n == steps ) // converged?
+    return interiorColor;
+
+  var v = smoothColor(steps, n, Tr, Ti);
+  v = Math.floor(512.0*v/steps);
+  if ( v > 255 ) v = 255;
+  return [v, v, v, 255];
+}
+
+function pickColorGrayscale2(steps, n, Tr, Ti)
+{
+  if ( n == steps ) { // converged?
+    var c = 255 - Math.floor(255.0*Math.sqrt(Tr+Ti)) % 255;
+    if ( c < 0 ) c = 0;
+    if ( c > 255 ) c = 255;
+    return [c, c, c, 255];
+  }
+
+  return pickColorGrayscale(steps, n, Tr, Ti);
+}
+
+function main()
+{
+  $('viewPNG').onclick = function(event)
+  {
+    window.location = canvas.toDataURL('image/png');
+  };
+
+  $('steps').onkeydown = function(event)
+  {
+    // disable auto-iterations when user edits it manually
+    $('autoIterations').checked = false;
+  }
+
+  $('resetButton').onclick = function(even)
+  {
+    $('settingsForm').reset();
+    setTimeout(function() { location.hash = ''; }, 1);
+    zoom = [zoomStart, zoomStart];
+    lookAt = lookAtDefault;
+    reInitCanvas = true;
+    draw(getColorPicker(), getSamples());
+  };
+
+  if ( dragToZoom == true ) {
+    var box = null;
+
+    $('canvasControls').onmousedown = function(e)
+    {
+      if ( box == null )
+        box = [e.clientX, e.clientY, 0, 0];
+    }
+
+    $('canvasControls').onmousemove = function(e)
+    {
+      if ( box != null ) {
+        var c = ccanvas.getContext('2d');
+        c.lineWidth = 1;
+
+        // clear out old box first
+        c.clearRect(0, 0, ccanvas.width, ccanvas.height);
+
+        // draw new box
+        c.strokeStyle = '#FF3B03';
+        box[2] = e.clientX;
+        box[3] = e.clientY;
+        c.strokeRect(box[0], box[1], box[2]-box[0], box[3]-box[1]);
+      }
+    }
+
+    var zoomOut = function(event) {
+      var x = event.clientX;
+      var y = event.clientY;
+
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+
+      var dx = (xRange[1] - xRange[0]) / (0.5 + (canvas.width-1));
+      var dy = (yRange[1] - yRange[0]) / (0.5 + (canvas.height-1));
+
+      x = xRange[0] + x*dx;
+      y = yRange[0] + y*dy;
+
+      lookAt = [x, y];
+
+      if ( event.shiftKey ) {
+        zoom[0] /= 0.5;
+        zoom[1] /= 0.5;
+      }
+
+      draw(getColorPicker(), getSamples());
+    };
+
+    $('canvasControls').onmouseup = function(e)
+    {
+      if ( box != null ) {
+        // Zoom out?
+        if ( e.shiftKey ) {
+          box = null;
+          zoomOut(e);
+          return;
+        }
+
+        /*
+         * Cleaer entire canvas
+         */
+        var c = ccanvas.getContext('2d');
+        c.clearRect(0, 0, ccanvas.width, ccanvas.height);
+
+        /*
+         * Calculate new rectangle to render
+         */
+        var x = Math.min(box[0], box[2]) + Math.abs(box[0] - box[2]) / 2.0;
+        var y = Math.min(box[1], box[3]) + Math.abs(box[1] - box[3]) / 2.0;
+
+        var dx = (xRange[1] - xRange[0]) / (0.5 + (canvas.width-1));
+        var dy = (yRange[1] - yRange[0]) / (0.5 + (canvas.height-1));
+
+        x = xRange[0] + x*dx;
+        y = yRange[0] + y*dy;
+
+        lookAt = [x, y];
+
+        /*
+         * This whole code is such a mess ...
+         */
+
+        var xf = Math.abs(Math.abs(box[0]-box[2])/canvas.width);
+        var yf = Math.abs(Math.abs(box[1]-box[3])/canvas.height);
+
+        zoom[0] *= Math.max(xf, yf); // retain aspect ratio
+        zoom[1] *= Math.max(xf, yf);
+
+        box = null;
+        draw(getColorPicker(), getSamples());
+      }
+    }
+  }
+/*
+   * Enable zooming (currently, the zooming is inexact!) Click to zoom;
+   * perfect to mobile phones, etc.
+   */
+if ( dragToZoom == false ) {
+  $('canvasMandelbrot').onclick = function(event)
+  {
+    var x = event.clientX;
+    var y = event.clientY;
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    var dx = (xRange[1] - xRange[0]) / (0.5 + (canvas.width-1));
+    var dy = (yRange[1] - yRange[0]) / (0.5 + (canvas.height-1));
+
+    x = xRange[0] + x*dx;
+    y = yRange[0] + y*dy;
+
+    lookAt = [x, y];
+
+    if ( event.shiftKey ) {
+      zoom[0] /= 0.5;
+      zoom[1] /= 0.5;
+    } else {
+      zoom[0] *= 0.5;
+      zoom[1] *= 0.5;
+    }
+
+    draw(getColorPicker(), getSamples());
+  };
+}
+
+  /*
+  * When resizing the window, be sure to update all the canvas stuff.
+  */
+  window.onresize = function(event)
+  {
+    reInitCanvas = true;
+  };
+
+  /*
+  * Read hash tag and render away at page load.
+  */
+  readHashTag();
+
+  draw(getColorPicker(), getSamples());
+  draw(getColorPicker(), getSamples());
+}
+
+main();

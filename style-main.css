@@ -1,0 +1,25 @@
+body {
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0px;
+    font-family: Lustria,serif;
+    font-weight: Normal;
+    color: #4b4b4b;
+    font-size: 13px;
+    text-align: justify;
+    line-height: 170%;
+    font-family: Lustria,serif;
+    color: #4b4b4b;
+    text-align: justify;
+    line-height: 170%;
+    /* background: url(https://www.indivstock.com/static40/preview2/stoc-569830.jpg), 
+    url(https://www.indivstock.com/static40/preview2/stoc-569830.jpg); */
+    
+}
+
+#gif-desc{
+    font-family: Lustria,serif;
+    color: coral;
+    margin: 1px;
+}
