@@ -1,12 +1,14 @@
+*{
+    max-width: 100vw;
+}
+
 body {
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0px;
+    max-width: 580px;
+    margin: 0 auto;
     font-family: Lustria,serif;
     font-weight: Normal;
     color: #4b4b4b;
-    font-size: 13px;
+    font-size: 16px;
     text-align: justify;
     line-height: 170%;
     font-family: Lustria,serif;
@@ -22,4 +24,20 @@ body {
     font-family: Lustria,serif;
     color: coral;
     margin: 1px;
+}
+
+#footer {
+    display: flex;
+    margin: 0 auto;
+    height: 50px;
+    color: black;
+    font-size: 15px;
+    justify-content: center;
+
+}
+
+#footer a {
+    /* display: flex;
+    margin: 0 auto; */
+    font-size: 15px;
 }
